@@ -1,4 +1,5 @@
 import { signupSchema, signinSchema } from "@/features/auths/schemas/auths";
+import { revalidateUserCache } from "@/features/users/db/cache";
 import { getUserById } from "@/features/users/db/users";
 import { db } from "@/lib/db";
 import bcrypt from "bcrypt";
@@ -72,6 +73,9 @@ export const signup = async (input: signupInput) => {
 
         const token = await generateJwtToken(newUser.id);
         await setCookieToken(token);
+
+        // ล้าง cache ทั้งหมดของ user หลังจากที่มีการสร้าง user ใหม่
+        revalidateUserCache(newUser.id)
     } catch (error) {
         console.error("Error signup user:", error);
         return {
