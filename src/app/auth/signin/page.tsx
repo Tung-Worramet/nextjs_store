@@ -3,7 +3,7 @@ import AuthHeader from "@/features/auths/components/auth-header";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "สมัครสมาชิก",
+  title: "เข้าสู่ระบบ",
   description:
     "ร้านค้าออนไลน์สำหรับสินค้าไอทีที่ดีที่สุด พร้อมบริการจัดส่งและราคาที่คุ้มค่า",
 };
