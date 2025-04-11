@@ -14,7 +14,7 @@ const Navbar = ({ user }: NavbarProps) => {
 
       {/* ถ้า user login เข้ามาจะแสดงตะกร้า ถ้าไม่ได้ login จะไม่แสดงตะกร้า */}
       {user && <CartIcon />}
-      <MobileMenu />
+      <MobileMenu user={user} />
 
       {/* Desktop Navigation */}
       <div className="hidden">
