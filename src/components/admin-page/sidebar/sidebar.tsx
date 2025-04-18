@@ -1,16 +1,23 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/providers/SidebarProvider";
-import { UserType } from "@/types/user";
-import { FolderTree, LayoutDashboard, LogOut, X } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  ClipboardList,
+  FolderTree,
+  LayoutDashboard,
+  LogOut,
+  ShoppingCart,
+  X,
+} from "lucide-react";
+import { UserType } from "@/types/user";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SidebarLink from "./sidebar-link";
 import { usePathname } from "next/navigation";
-import { useSignout } from "./../../../hooks/use-sign-out";
+import { useSignout } from "@/hooks/use-sign-out";
 
 interface SidebarAdminProps {
   user: UserType;
@@ -18,18 +25,30 @@ interface SidebarAdminProps {
 
 const SidebarAdmin = ({ user }: SidebarAdminProps) => {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
-  const pathname = usePathname();
   const { isPending, handleSignout } = useSignout();
+  const pathname = usePathname();
 
   const sidebarLinks = [
-    { href: "/admin", label: "Dashboard", icon: <LayoutDashboard size={20} /> },
+    {
+      href: "/admin",
+      icon: <LayoutDashboard size={20} />,
+      label: "Dashboard",
+    },
     {
       href: "/admin/categories",
-      label: "Categories",
       icon: <FolderTree size={20} />,
+      label: "Categories",
     },
-    // { href: "/admin/orders", label: "Orders", icon: "orders" },
-    // { href: "/admin/users", label: "Users", icon: "users" },
+    {
+      href: "/admin/products",
+      icon: <ShoppingCart size={20} />,
+      label: "Products",
+    },
+    {
+      href: "/admin/orders",
+      icon: <ClipboardList size={20} />,
+      label: "Orders",
+    },
   ];
 
   return (
@@ -37,7 +56,7 @@ const SidebarAdmin = ({ user }: SidebarAdminProps) => {
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-foreground/70 z-40 md:hidden"
           onClick={toggleSidebar}
         />
       )}
@@ -45,28 +64,27 @@ const SidebarAdmin = ({ user }: SidebarAdminProps) => {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-40 h-svh w-64 border-r flex flex-col",
+          "fixed top-0 left-0 z-40 h-svh bg-card w-64 border-r border-border flex flex-col transition-all duration-200",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between h-16 px-4 border-b">
+        <div className="flex h-16 items-center justify-between px-4 border-b border-border">
           {/* Logo */}
           <Link href="/admin" className="flex items-center gap-2">
-            <div className="bg-primary rounded-md p-1">
+            <div className="rounded-md bg-primary p-1">
               <div className="size-6 text-primary-foreground font-bold flex items-center justify-center">
                 A
               </div>
             </div>
             <span className="text-xl font-bold">Admin</span>
           </Link>
-
           {/* Toggle Sidebar Button */}
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
             onClick={toggleSidebar}
+            className="md:hidden"
           >
             <X size={20} />
           </Button>
@@ -94,16 +112,16 @@ const SidebarAdmin = ({ user }: SidebarAdminProps) => {
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </div>
-
               {/* Menu */}
               <nav className="space-y-1.5">
                 {sidebarLinks.map((link, index) => (
                   <SidebarLink
                     key={index}
-                    label={link.label}
                     href={link.href}
                     icon={link.icon}
+                    label={link.label}
                     isActive={pathname === link.href}
+                    onClose={toggleSidebar}
                   />
                 ))}
               </nav>
@@ -112,12 +130,12 @@ const SidebarAdmin = ({ user }: SidebarAdminProps) => {
         </div>
 
         {/* Signout Button */}
-        <div className="border-t p-4">
+        <div className="border-t border-border p-4 mt-auto">
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground cursor-pointer"
-            onClick={handleSignout}
             disabled={isPending}
+            onClick={handleSignout}
           >
             <LogOut size={20} />
             <span>Logout</span>
@@ -127,5 +145,4 @@ const SidebarAdmin = ({ user }: SidebarAdminProps) => {
     </div>
   );
 };
-
 export default SidebarAdmin;
