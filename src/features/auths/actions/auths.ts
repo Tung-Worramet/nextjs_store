@@ -1,7 +1,7 @@
 "use server";
 
 import { InitialFormState } from "@/types/action";
-import { signin, signout, signup } from "../db/auths";
+import { signin, signout, signup } from "@/features/auths/db/auths";
 
 export const authAction = async (
   _prevState: InitialFormState,

@@ -1,3 +1,5 @@
+"use client";
+
 import InputForm from "@/components/shared/input-form";
 import SubmitBtn from "@/components/shared/submit-btn";
 import {
@@ -8,10 +10,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useForm } from "@/hooks/use-form";
 import { Plus } from "lucide-react";
 import Form from "next/form";
+import { categoryAction } from "@/features/categories/actions/categories";
+import ErrorMessage from "@/components/shared/error-message";
 
 const CategoryForm = () => {
+  const { errors, formAction, isPending, clearErrors } =
+    useForm(categoryAction);
+
   return (
     <Card>
       <CardHeader>
@@ -25,7 +33,7 @@ const CategoryForm = () => {
         </CardDescription>
       </CardHeader>
 
-      <Form action="" className="space-y-4">
+      <Form action={formAction} onChange={clearErrors} className="space-y-4">
         <CardContent>
           <div className="space-y-2">
             <InputForm
@@ -35,11 +43,17 @@ const CategoryForm = () => {
               required
             />
             {/* Error Message */}
+            {errors.name && <ErrorMessage error={errors.name[0]} />}
           </div>
         </CardContent>
 
         <CardFooter>
-          <SubmitBtn name="Add category" icon={Plus} className="w-full" />
+          <SubmitBtn
+            name="Add category"
+            icon={Plus}
+            className="w-full"
+            pending={isPending}
+          />
         </CardFooter>
       </Form>
     </Card>

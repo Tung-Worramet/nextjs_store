@@ -1,5 +1,5 @@
 import { Loader2, LucideIcon } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 
 interface SubmitBtnProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   name: string;
