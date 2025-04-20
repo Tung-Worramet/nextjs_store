@@ -235,7 +235,10 @@ const CategoryList = ({ categories }: CategoryListProps) => {
                                 setDropdownOpenId(null); // ปิด dropdown
                               }}
                             >
-                              <Trash2 size={15} className="text-green-600" />
+                              <RefreshCcw
+                                size={15}
+                                className="text-green-600"
+                              />
                               <span className="ml-2 text-green-600">
                                 Restore
                               </span>

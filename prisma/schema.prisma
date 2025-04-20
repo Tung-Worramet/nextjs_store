@@ -28,6 +28,11 @@ enum CategoryStatus {
   Inactive
 }
 
+enum ProductStatus {
+  Active
+  Inactive
+}
+
 model User {
   id        String     @id @default(uuid())
   name      String?
@@ -49,4 +54,22 @@ model Category {
   status    CategoryStatus @default(Active)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
+  products  Product[]
+}
+
+model Product {
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  cost        Float         @default(0)
+  basePrice   Float
+  price       Float
+  sold        Int           @default(0)
+  stock       Int
+  status      ProductStatus @default(Active)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
 }
