@@ -66,12 +66,10 @@ const CategoriesAdminPage = async () => {
           <CategoryForm />
         </div>
 
-        {/* <div>test</div> */}
-      </div>
-
-      {/* List */}
-      <div>
-        <CategoryList categories={categories} />
+        {/* List */}
+        <div className="lg:col-span-2">
+          <CategoryList categories={categories} />
+        </div>
       </div>
     </div>
   );

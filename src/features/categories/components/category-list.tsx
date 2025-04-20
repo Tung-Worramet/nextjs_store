@@ -14,20 +14,54 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CategoryType } from "@/types/category";
-import { MoreVertical, Pencil, Search, Trash2 } from "lucide-react";
-import EditCategoryModal from "./edit-category-modal";
-import { useState } from "react";
+import { MoreVertical, Pencil, RefreshCcw, Search, Trash2 } from "lucide-react";
+import EditCategoryModal from "@/features/categories/components/edit-category-modal";
+import { useEffect, useState } from "react";
+import DeleteCategoryModal from "@/features/categories/components/delete-category-modal";
+import RestoreCategoryModal from "@/features/categories/components/restore-category-modal";
 
 interface CategoryListProps {
   categories: CategoryType[]; // เป็น array เพราะ categories ที่ส่งมาจาก CategoriesAdminPage มีการ findMany ทำให้เป็นข้อมูลเป็น array
 }
 
 const CategoryList = ({ categories }: CategoryListProps) => {
+  // Modal State
   const [isEditModal, setIsEditModal] = useState(false);
+  const [isDeleteModal, setIsDeleteModal] = useState(false);
+  const [isRestoreModal, setIsRestoreModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryType | null>(
     null
   );
 
+  const [activeTab, setActiveTab] = useState("all");
+
+  // ใช้สำหรับกรองแต่ละ status
+  const [filteredCategories, setFilteredCategories] =
+    useState<CategoryType[]>(categories);
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    let result = [...categories];
+
+    if (activeTab === "active") {
+      result = result.filter((c) => c.status === "Active");
+    } else if (activeTab === "inactive") {
+      result = result.filter((c) => c.status === "Inactive");
+    } else {
+      result = result;
+    }
+
+    if (searchTerm) {
+      result = result.filter((c) =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredCategories(result);
+  }, [activeTab, categories, searchTerm]);
+
+  // Fix bugs เปิด ปิด dropdown menu desktop
   const [dropdownOpenId, setDropdownOpenId] = useState<string | null>(null);
 
   const handleEditClick = (category: CategoryType) => {
@@ -35,12 +69,31 @@ const CategoryList = ({ categories }: CategoryListProps) => {
     setIsEditModal(true);
   };
 
+  const handleDeleteClick = (category: CategoryType) => {
+    setSelectedCategory(category);
+    setIsDeleteModal(true);
+  };
+
+  const handleRestoreClick = (category: CategoryType) => {
+    setSelectedCategory(category);
+    setIsRestoreModal(true);
+  };
+
+  const handleTabActive = (value: string) => {
+    setActiveTab(value);
+  };
+
+  const handleSearchTerm = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+  };
+
   return (
     <>
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-lg sm:text-xl">Category List</CardTitle>
-          <Tabs>
+
+          <Tabs value={activeTab} onValueChange={handleTabActive}>
             <TabsList className="grid grid-cols-3 mb-4">
               <TabsTrigger value="all">All Categories</TabsTrigger>
               <TabsTrigger value="active">Active</TabsTrigger>
@@ -52,7 +105,12 @@ const CategoryList = ({ categories }: CategoryListProps) => {
                 size={16}
                 className="absolute left-2 top-2.5 text-muted-foreground"
               />
-              <Input placeholder="Search categories..." className="pl-8" />
+              <Input
+                placeholder="Search categories..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={handleSearchTerm}
+              />
             </div>
           </Tabs>
         </CardHeader>
@@ -71,10 +129,10 @@ const CategoryList = ({ categories }: CategoryListProps) => {
           </div>
 
           <ScrollArea className="h-[350px] sm:h-[420px]">
-            {categories.length > 0 ? (
-              categories.map((category, index) => (
+            {filteredCategories.length > 0 ? (
+              filteredCategories.map((category, index) => (
                 <div
-                  key={index}
+                  key={category.id}
                   className="grid grid-cols-12 py-3 px-2 sm:px-4 border-t items-center hover:bg-gray-50 transition-colors duration-100 text-sm"
                 >
                   <div className="col-span-1 hidden sm:block">{index + 1}</div>
@@ -105,9 +163,26 @@ const CategoryList = ({ categories }: CategoryListProps) => {
                       >
                         <Pencil size={15} />
                       </Button>
-                      <Button variant="ghost" size="icon" className="size-7">
-                        <Trash2 size={15} />
-                      </Button>
+
+                      {category.status === "Active" ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          onClick={() => handleDeleteClick(category)}
+                        >
+                          <Trash2 size={15} />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          onClick={() => handleRestoreClick(category)}
+                        >
+                          <RefreshCcw size={15} />
+                        </Button>
+                      )}
                     </div>
 
                     {/* Desktop Action Button */}
@@ -140,12 +215,32 @@ const CategoryList = ({ categories }: CategoryListProps) => {
                           </DropdownMenuItem>
 
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>
-                            <Trash2 size={15} className="text-destructive" />
-                            <span className="ml-2 text-destructive">
-                              Delete
-                            </span>
-                          </DropdownMenuItem>
+
+                          {category.status === "Active" ? (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                handleDeleteClick(category);
+                                setDropdownOpenId(null); // ปิด dropdown
+                              }}
+                            >
+                              <Trash2 size={15} className="text-destructive" />
+                              <span className="ml-2 text-destructive">
+                                Delete
+                              </span>
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                handleRestoreClick(category);
+                                setDropdownOpenId(null); // ปิด dropdown
+                              }}
+                            >
+                              <Trash2 size={15} className="text-green-600" />
+                              <span className="ml-2 text-green-600">
+                                Restore
+                              </span>
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -164,6 +259,18 @@ const CategoryList = ({ categories }: CategoryListProps) => {
       <EditCategoryModal
         open={isEditModal}
         onOpenChange={setIsEditModal}
+        category={selectedCategory}
+      />
+
+      <DeleteCategoryModal
+        open={isDeleteModal}
+        onOpenChange={setIsDeleteModal}
+        category={selectedCategory}
+      />
+
+      <RestoreCategoryModal
+        open={isRestoreModal}
+        onOpenChange={setIsRestoreModal}
         category={selectedCategory}
       />
     </>

@@ -11,6 +11,7 @@ import {
   canUpdateCategory,
 } from "@/features/categories/permissions/categories";
 import { redirect } from "next/navigation";
+import { CategoryStatus } from "@prisma/client";
 
 interface CreateCategoryInput {
   name: string;
@@ -155,4 +156,63 @@ export const updateCategory = async (input: UpdateCategoryInput) => {
       message: "Someting went wrong. Plase try again later",
     };
   }
+};
+
+export const changeCategoryStatus = async (
+  id: string,
+  status: CategoryStatus
+) => {
+  const user = await authCheck();
+
+  if (!user || !canUpdateCategory(user)) {
+    redirect("/");
+  }
+
+  try {
+    // Check if category exists
+    const existsCategory = await db.category.findUnique({
+      where: {
+        id: id,
+      },
+    });
+
+    if (!existsCategory) {
+      return {
+        message: "Category not found",
+      };
+    }
+
+    // if status is already
+    if (existsCategory.status === status) {
+      return {
+        message: `Category is already ${status.toLowerCase()}`,
+      };
+    }
+
+    // Update status
+    const updatedCategory = await db.category.update({
+      where: {
+        id: id,
+      },
+      data: {
+        status: status,
+      },
+    });
+
+    // Update statusสำเร็จ และจะรีเฟรชแคช category ทั้งหมด
+    revalidateCategoryCache(updatedCategory.id);
+  } catch (error) {
+    console.error("Error changing category status:", error);
+    return {
+      message: "Someting went wrong. Plase try again later",
+    };
+  }
+};
+
+export const removeCategory = async (id: string) => {
+  return await changeCategoryStatus(id, "Inactive");
+};
+
+export const restoreCategory = async (id: string) => {
+  return await changeCategoryStatus(id, "Active");
 };
