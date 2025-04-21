@@ -87,7 +87,7 @@ export const createCategory = async (input: CreateCategoryInput) => {
   } catch (error) {
     console.error("Error creating new category:", error);
     return {
-      message: "Someting went wrong. Plase try again later",
+      message: "Something went wrong. Please try again later",
     };
   }
 };
@@ -153,7 +153,7 @@ export const updateCategory = async (input: UpdateCategoryInput) => {
   } catch (error) {
     console.error("Error updating category:", error);
     return {
-      message: "Someting went wrong. Plase try again later",
+      message: "Something went wrong. Please try again later",
     };
   }
 };
@@ -204,7 +204,7 @@ export const changeCategoryStatus = async (
   } catch (error) {
     console.error("Error changing category status:", error);
     return {
-      message: "Someting went wrong. Plase try again later",
+      message: "Something went wrong. Please try again later",
     };
   }
 };

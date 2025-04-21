@@ -1,4 +1,4 @@
-type CACHE_TAG = "users" | "categories";
+type CACHE_TAG = "users" | "categories" | "products";
 
 // ดึงข้อมูลจาก cache โดยใช้ tag
 export const getGlobalTag = (tag: CACHE_TAG) => {
