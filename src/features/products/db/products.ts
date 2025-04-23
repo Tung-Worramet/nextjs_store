@@ -18,6 +18,8 @@ interface CreateProductInput {
   price: number;
   stock: number;
   categoryId: string;
+  images: Array<{ url: string, fileId: string }>
+  mainImageIndex: number;
 }
 
 export const getProducts = async () => {
@@ -36,6 +38,12 @@ export const getProducts = async () => {
             status: true,
           },
         },
+        images: {
+          where: {
+            isMain: true,
+          },
+          take: 1,
+        },
       },
     });
 
@@ -43,6 +51,7 @@ export const getProducts = async () => {
       ...product,
       lowStock: 5,
       sku: product.id.substring(0, 8).toUpperCase(),
+      mainImage: product.images.length > 0 ? product.images[0] : null,
     }));
   } catch (error) {
     console.error("Error getting products data:", error);
@@ -82,16 +91,37 @@ export const createProduct = async (input: CreateProductInput) => {
     }
 
     // Create new product
-    const newProduct = await db.product.create({
-      data: {
-        title: data.title,
-        description: data.description,
-        cost: data.cost,
-        basePrice: data.basePrice,
-        price: data.price,
-        stock: data.stock,
-        categoryId: data.categoryId
+    const newProduct = await db.$transaction(async (prisma) => { // คำสั่ง db.$transaction ถ้าเกิด Error ในขั้นตอนใดจะ Rollback ข้อมูลทั้งหมด ไม่ทิ้งข้อมูลที่บันทึกค้างไว้
+      const product = await db.product.create({
+        data: {
+          title: data.title,
+          description: data.description,
+          cost: data.cost,
+          basePrice: data.basePrice,
+          price: data.price,
+          stock: data.stock,
+          categoryId: data.categoryId
+        }
+      })
+
+      // บันทึกรูปภาพสินค้า
+      if (input.images && input.images.length > 0) {
+        // ใช้ Promise.all เพื่อให้ บันทึกหลาย ๆ รูปพร้อมกันแบบ async
+        await Promise.all(
+          input.images.map((image, index) => {
+            return prisma.productImage.create({
+              data: {
+                url: image.url,
+                fileId: image.fileId,
+                isMain: input.mainImageIndex === index,
+                productId: product.id
+              }
+            })
+          })
+        )
       }
+
+      return product
     })
 
     revalidateProductCache(newProduct.id)
