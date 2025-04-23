@@ -21,18 +21,20 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "@/hooks/use-form";
 import { CategoryType } from "@/types/category";
-import { Save, SlashSquare } from "lucide-react";
+import { Save } from "lucide-react";
 import Form from "next/form";
 import { useState } from "react";
 import { productAction } from "@/features/products/actions/products";
 import ErrorMessage from "@/components/shared/error-message";
 import ProductImageUpload from "@/features/products/components/product-image-upload";
+import { ProductType } from "@/types/product";
 
 interface ProductFormProps {
   categories: CategoryType[];
+  product: ProductType | null;
 }
 
-const ProductForm = ({ categories }: ProductFormProps) => {
+const ProductForm = ({ categories, product }: ProductFormProps) => {
   // Price State
   const [basePrice, setBasePrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
@@ -40,6 +42,7 @@ const ProductForm = ({ categories }: ProductFormProps) => {
   // Image State รับมาจาก product-image-upload
   const [productImages, setProductImages] = useState<File[]>([]);
   const [mainImageIndex, setMainImageIndex] = useState(0);
+  const [deleteImageIds, setDeleteImageIds] = useState<string[]>([]);
 
   const { errors, formAction, isPending, clearErrors } = useForm(
     productAction,
@@ -58,9 +61,14 @@ const ProductForm = ({ categories }: ProductFormProps) => {
     return `${discount.toFixed(2)}%`;
   };
 
-  const handleImageChange = (images: File[], mainIndex: number) => {
+  const handleImageChange = (
+    images: File[],
+    mainIndex: number,
+    deletedIds: string[] = []
+  ) => {
     setProductImages(images);
     setMainImageIndex(mainIndex);
+    setDeleteImageIds(deletedIds);
   };
 
   const handleSubmit = async (formData: FormData) => {
@@ -101,6 +109,7 @@ const ProductForm = ({ categories }: ProductFormProps) => {
                 id="title"
                 placeholder="Enter product title"
                 required
+                defaultValue={product?.title}
               />
 
               {/* Error Message */}
@@ -118,6 +127,7 @@ const ProductForm = ({ categories }: ProductFormProps) => {
                 name="description"
                 placeholder="Enter description product"
                 className="min-h-20"
+                defaultValue={product?.description}
               />
 
               {/* Error Message */}
@@ -133,7 +143,7 @@ const ProductForm = ({ categories }: ProductFormProps) => {
                 <span className="text-red-500">*</span>
               </Label>
 
-              <Select name="category-id">
+              <Select name="category-id" defaultValue={product?.categoryId}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -158,7 +168,10 @@ const ProductForm = ({ categories }: ProductFormProps) => {
           </div>
 
           {/* Product Image Section */}
-          <ProductImageUpload onImageChange={handleImageChange} />
+          <ProductImageUpload
+            onImageChange={handleImageChange}
+            existingImages={product?.images}
+          />
 
           {/* Pricing Information */}
           <div className="flex flex-col gap-4">
@@ -174,6 +187,7 @@ const ProductForm = ({ categories }: ProductFormProps) => {
                   min="0"
                   step="0.01"
                   placeholder="0.00"
+                  defaultValue={product?.cost}
                 />
 
                 {/* Error Message */}
@@ -190,7 +204,7 @@ const ProductForm = ({ categories }: ProductFormProps) => {
                   step="0.01"
                   placeholder="0.00"
                   required
-                  value={basePrice}
+                  defaultValue={product?.basePrice || basePrice}
                   onChange={(event) => setBasePrice(event.target.value)}
                 />
 
@@ -210,7 +224,7 @@ const ProductForm = ({ categories }: ProductFormProps) => {
                   step="0.01"
                   placeholder="0.00"
                   required
-                  defaultValue={basePrice}
+                  defaultValue={product?.price || basePrice}
                   onChange={(event) => setSalePrice(event.target.value)}
                 />
 
@@ -241,6 +255,7 @@ const ProductForm = ({ categories }: ProductFormProps) => {
                 min="0"
                 placeholder="0"
                 required
+                defaultValue={product?.stock}
               />
 
               {/* Error Message */}
@@ -251,7 +266,7 @@ const ProductForm = ({ categories }: ProductFormProps) => {
 
         <CardFooter>
           <SubmitBtn
-            name="Save Product"
+            name={product ? "Update Product" : "Save Product"}
             icon={Save}
             className="w-full"
             pending={isPending}

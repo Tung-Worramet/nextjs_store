@@ -4,15 +4,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { ProductImage } from "@prisma/client";
 import { ImagePlus, Plus, Star, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
 
 interface ProductImageUploadProps {
-  onImageChange: (images: File[], mainIndex: number) => void;
+  onImageChange: (
+    images: File[],
+    mainIndex: number,
+    deletedIds?: string[]
+  ) => void;
+  existingImages?: ProductImage[];
 }
 
-const ProductImageUpload = ({ onImageChange }: ProductImageUploadProps) => {
+const ProductImageUpload = ({
+  onImageChange,
+  existingImages = [],
+}: ProductImageUploadProps) => {
   // สร้าง ref สำหรับ input type="file" เพื่อควบคุมการเปิดหน้าต่างเลือกไฟล์
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -24,6 +33,9 @@ const ProductImageUpload = ({ onImageChange }: ProductImageUploadProps) => {
 
   // เก็บไฟล์รูปภาพที่ผู้ใช้เลือกทั้งหมด (เพื่อนำไปอัปโหลด)
   const [selectedFile, setSelectedFile] = useState<File[]>([]);
+
+  const [existingImagesState, setExistingImagesState] =
+    useState(existingImages);
 
   // เปิดหน้าต่างเลือกไฟล์ (File Picker)
   const triggerFileInput = () => {
@@ -115,12 +127,68 @@ const ProductImageUpload = ({ onImageChange }: ProductImageUploadProps) => {
       <Label>
         Product Images<span className="text-red-500">*</span>
       </Label>
+
       {/* Preview images area */}
-      {previewUrls.length > 0 && (
+      {existingImagesState.length > 0 && previewUrls.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
+          {/* Existing Images */}
+          {existingImagesState.map((image, index) => (
+            <div
+              key={`existing-${index}`}
+              className={cn(
+                "relative aspect-square group border rounded-md overflow-hidden",
+                {
+                  "ring-2 ring-primary": mainImageIndex === index,
+                }
+              )}
+            >
+              <Image
+                alt={`Product Image ${index + 1}`}
+                src={image.url}
+                fill
+                className="object-cover"
+              />
+
+              {/* Main Image Badge */}
+              {mainImageIndex === index && (
+                <Badge className="absolute top-1 left-1">Main</Badge>
+              )}
+
+              {/* Image Control Overlay */}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute top-1 right-1 flex items-center gap-1">
+                {/* Favorite Button */}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="size-6 sm:size-8 rounded-full"
+                  onClick={() => handleSetMain(index)}
+                >
+                  <Star
+                    size={16}
+                    className={cn({
+                      "fill-yellow-400 text-yellow-400":
+                        mainImageIndex === index,
+                    })}
+                  />
+                </Button>
+
+                {/* Delete Button */}
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="size-6 sm:size-8 rounded-full"
+                  onClick={() => handleRemoveImage(index)}
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </div>
+            </div>
+          ))}
+
           {previewUrls.map((url, index) => (
             <div
-              key={index}
+              key={`new-${index}`}
               className={cn(
                 "relative aspect-square group border rounded-md overflow-hidden",
                 {
@@ -186,7 +254,7 @@ const ProductImageUpload = ({ onImageChange }: ProductImageUploadProps) => {
       )}
 
       {/* Upload image button */}
-      {previewUrls.length === 0 && (
+      {existingImagesState.length === 0 && previewUrls.length === 0 && (
         <div
           className="border rounded-md p-8 flex flex-col items-center gap-2 justify-center cursor-pointer hover:bg-muted transition-colors"
           onClick={triggerFileInput}
