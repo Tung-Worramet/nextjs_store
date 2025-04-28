@@ -1,11 +1,12 @@
 "use server"
 
 import { InitialFormState } from "@/types/action"
-import { createProduct } from "@/features/products/db/products"
+import { createProduct, updateProduct } from "@/features/products/db/products"
 import { uploadToImageKit } from "@/lib/imageKit"
 
 export const productAction = async (_prevState: InitialFormState, formData: FormData) => {
     const rawData = {
+        id: formData.get("product-id") as string,
         title: formData.get("title") as string,
         description: formData.get("description") as string,
         categoryId: formData.get("category-id") as string,
@@ -14,7 +15,8 @@ export const productAction = async (_prevState: InitialFormState, formData: Form
         price: formData.get("price") as string,
         stock: formData.get("stock") as string,
         images: formData.getAll("images") as File[], // getAll เพราะใช้ forEach วนลูป อาจจะมีหลายรูป
-        mainImageIndex: formData.get("main-image-index") as string
+        mainImageIndex: formData.get("main-image-index") as string,
+        deletedImageIds: formData.get("deleted-image-ids") as string
     }
 
     const processedData = {
@@ -23,7 +25,8 @@ export const productAction = async (_prevState: InitialFormState, formData: Form
         basePrice: rawData.basePrice ? parseFloat(rawData.basePrice) : 0,
         price: rawData.price ? parseFloat(rawData.price) : 0,
         stock: rawData.stock ? parseInt(rawData.stock) : 0,
-        mainImageIndex: rawData.mainImageIndex ? parseInt(rawData.mainImageIndex) : 0
+        mainImageIndex: rawData.mainImageIndex ? parseInt(rawData.mainImageIndex) : 0,
+        deletedImageIds: rawData.deletedImageIds ? (JSON.parse(rawData.deletedImageIds) as string[]) : []
     }
 
     const uploadedImages = []
@@ -39,14 +42,13 @@ export const productAction = async (_prevState: InitialFormState, formData: Form
         }
     }
 
-    const result = await createProduct({
-        ...processedData,
-        images: uploadedImages,
-    })
+    const result = processedData.id ?
+        await updateProduct({ ...processedData, images: uploadedImages })
+        : await createProduct({ ...processedData, images: uploadedImages, })
 
     return result && result.message ? {
         success: false, message: result.message, errors: result.error
     } : {
-        success: true, message: "Product create success"
+        success: true, message: processedData.id ? "Product updated success" : "Product create success"
     }
 }

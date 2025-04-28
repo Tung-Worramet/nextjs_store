@@ -6,8 +6,9 @@ import {
 import { getProductGlobalTag, getProductIdTag, revalidateProductCache } from "@/features/products/db/cache";
 import { authCheck } from "@/features/auths/db/auths";
 import { redirect } from "next/navigation";
-import { createProductSchema } from "@/features/products/schemas/products";
-import { canCreateProduct } from "@/features/products/permissions/products";
+import { productSchema } from "@/features/products/schemas/products";
+import { canCreateProduct, canUpdateProduct } from "@/features/products/permissions/products";
+import { deleteFromImageKit } from "@/lib/imageKit";
 
 interface CreateProductInput {
   title: string;
@@ -110,7 +111,7 @@ export const createProduct = async (input: CreateProductInput) => {
   }
 
   try {
-    const { success, data, error } = createProductSchema.safeParse(input)
+    const { success, data, error } = productSchema.safeParse(input)
 
     if (!success) {
       return {
@@ -173,5 +174,151 @@ export const createProduct = async (input: CreateProductInput) => {
     return {
       message: "Something went wrong. Please try again later",
     };
+  }
+}
+
+export const updateProduct = async (input: CreateProductInput & { id: string, deletedImageIds: string[] }) => {
+  const user = await authCheck();
+
+  if (!user || !canUpdateProduct(user)) {
+    redirect("/");
+  }
+
+  try {
+    const { success, data, error } = productSchema.safeParse(input)
+
+    if (!success) {
+      return {
+        message: "Please enter valid product information",
+        error: error.flatten().fieldErrors
+      }
+    }
+
+    const existingProduct = await db.product.findUnique({
+      where: {
+        id: input.id
+      },
+      include: {
+        images: true
+      }
+    })
+
+    if (!existingProduct) {
+      return {
+        message: "Product not found"
+      }
+    }
+
+    const category = await db.category.findUnique({
+      where: {
+        id: data.categoryId,
+        status: "Active"
+      }
+    })
+
+    if (!category) {
+      return {
+        message: "Selected category not found or inactive"
+      }
+    }
+
+    if (input.deletedImageIds && input.deletedImageIds.length > 0) {
+      for (const deletedImageId of input.deletedImageIds) {
+        const imageToDelete = existingProduct.images.find((image) => image.id === deletedImageId)
+
+        if (imageToDelete) {
+          await deleteFromImageKit(imageToDelete.fileId)
+        }
+      }
+    }
+
+    const updatedProduct = await db.$transaction(async (prisma) => {
+      // 1. อัพเดทข้อมูลสินค้า
+      const product = await prisma.product.update({
+        where: {
+          id: input.id
+        },
+        data: {
+          title: data.title,
+          description: data.description,
+          cost: data.cost,
+          basePrice: data.basePrice,
+          price: data.price,
+          stock: data.stock,
+          categoryId: data.categoryId
+        }
+      })
+
+      // 2. ลบรูปภาพที่ถูกเลือกให้ลบจากฐานข้อมูล
+      if (input.deletedImageIds && input.deletedImageIds.length > 0) {
+        await prisma.productImage.deleteMany({
+          where: {
+            id: {
+              in: input.deletedImageIds
+            },
+            productId: product.id
+          }
+        })
+      }
+
+      // 3. เซ็ต isMain ให้เป็น false ทั้วหมด
+      await prisma.productImage.updateMany({
+        where: {
+          productId: product.id
+        },
+        data: {
+          isMain: false
+        }
+      })
+
+      // 4. เพิ่มรูปภาพใหม่เข้าไป
+      if (input.images && input.images.length > 0) {
+        await Promise.all(
+          input.images.map((image) => {
+            return prisma.productImage.create({
+              data: {
+                url: image.url,
+                fileId: image.fileId,
+                isMain: false,
+                productId: product.id
+              }
+            })
+          })
+        )
+      }
+
+      // 5. ค้นหารูปทั้งหมดและตั้งค่าภาพ
+      const allImages = await prisma.productImage.findMany({
+        where: {
+          productId: product.id
+        },
+        orderBy: {
+          createdAt: "asc"
+        }
+      })
+
+      if (allImages.length > 0) {
+        const validIndex = Math.min(input.mainImageIndex, allImages.length - 1)
+        if (validIndex >= 0) {
+          await prisma.productImage.update({
+            where: {
+              id: allImages[validIndex].id
+            },
+            data: {
+              isMain: true
+            }
+          })
+        }
+      }
+
+      return product
+    })
+
+    revalidateProductCache(updatedProduct.id)
+  } catch (error) {
+    console.error("Error updating product:", error)
+    return {
+      message: "Something went wrong. Please try again later",
+    }
   }
 }

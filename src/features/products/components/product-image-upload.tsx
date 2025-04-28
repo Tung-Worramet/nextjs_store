@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { ProductImage } from "@prisma/client";
 import { ImagePlus, Plus, Star, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface ProductImageUploadProps {
   onImageChange: (
@@ -22,20 +22,39 @@ const ProductImageUpload = ({
   onImageChange,
   existingImages = [],
 }: ProductImageUploadProps) => {
-  // สร้าง ref สำหรับ input type="file" เพื่อควบคุมการเปิดหน้าต่างเลือกไฟล์
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null); // สร้าง ref สำหรับ input type="file" เพื่อควบคุมการเปิดหน้าต่างเลือกไฟล์
 
-  // สร้าง state สำหรับเก็บ URL ของรูปภาพที่จะแสดง preview
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]); // สร้าง state สำหรับเก็บ URL ของรูปภาพที่จะแสดง preview
 
-  // เก็บ index ของรูปหลัก (Main Image) ที่ผู้ใช้เลือก
-  const [mainImageIndex, setMainImageIndex] = useState(0);
+  const [mainImageIndex, setMainImageIndex] = useState(0); // เก็บ index ของรูปหลัก (Main Image) ที่ผู้ใช้เลือก
 
-  // เก็บไฟล์รูปภาพที่ผู้ใช้เลือกทั้งหมด (เพื่อนำไปอัปโหลด)
-  const [selectedFile, setSelectedFile] = useState<File[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File[]>([]); // เก็บไฟล์รูปภาพที่ผู้ใช้เลือกทั้งหมด (เพื่อนำไปอัปโหลด)
+
+  const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]); // เก็บ id ของรูปเก่าที่ลบ
+
+  const [initialMainImageSet, setInitialMainImageSet] = useState(false); // ป้องกันตั้ง main image ซ้ำ
 
   const [existingImagesState, setExistingImagesState] =
-    useState(existingImages);
+    useState(existingImages); // จัดการรูปเก่าใน state
+
+  // ฟังก์ชันแจ้ง Parent ทุกครั้งที่มีการเปลี่ยนแปลงข้อมูล
+  const notifyToParent = useCallback(() => {
+    onImageChange(selectedFile, mainImageIndex, deletedImageIds);
+  }, [selectedFile, mainImageIndex, deletedImageIds, onImageChange]);
+
+  // ตั้งค่ารูปหลักจาก existing images ครั้งแรก + แจ้ง parent เมื่อ state เปลี่ยน
+  useEffect(() => {
+    if (existingImagesState.length > 0 && !initialMainImageSet) {
+      // หา index ของรูปหลักใน existingImagesState
+      const mainIndex = existingImagesState.findIndex((image) => image.isMain);
+      if (mainIndex >= 0) {
+        setMainImageIndex(mainIndex);
+        setInitialMainImageSet(true);
+      }
+    }
+
+    notifyToParent();
+  }, [existingImagesState, notifyToParent, initialMainImageSet]);
 
   // เปิดหน้าต่างเลือกไฟล์ (File Picker)
   const triggerFileInput = () => {
@@ -67,12 +86,16 @@ const ProductImageUpload = ({
     setSelectedFile((prev) => [...prev, ...imageFiles]);
 
     // ถ้าเลือกรูปใหม่มา ให้กำหนด index ของรูปหลักเป็น 0
-    if (newPreviewUrls.length > 0) {
+    if (
+      existingImagesState.length === 0 &&
+      selectedFile.length === 0 &&
+      imageFiles.length > 0
+    ) {
       setMainImageIndex(0);
     }
 
-    // ส่งข้อมูลไฟล์และ index ของรูปหลัก ไปยังฟังก์ชันของ parent component ส่งไปให้ product-form
-    onImageChange([...selectedFile, ...imageFiles], mainImageIndex);
+    // // ส่งข้อมูลไฟล์และ index ของรูปหลัก ไปยังฟังก์ชันของ parent component ส่งไปให้ product-form
+    // onImageChange([...selectedFile, ...imageFiles], mainImageIndex);
 
     // เคลียร์ค่า input file เพื่อให้สามารถเลือกไฟล์ซ้ำได้
     if (fileInputRef.current) {
@@ -80,46 +103,61 @@ const ProductImageUpload = ({
     }
   };
 
-  const handleSetMain = (index: number) => {
-    // กำหนด index ของรูปหลักตามที่เลือก
-    setMainImageIndex(index);
-
-    // แจ้ง parent component ว่ามีการเปลี่ยนรูปหลัก ส่งไปให้ product-form
-    onImageChange(selectedFile, index);
-  };
-
-  const handleRemoveImage = (index: number) => {
-    // ลบไฟล์ที่ตำแหน่ง index ออกจาก state
-    const newFiles = selectedFile.filter((_, i) => i !== index);
-
-    // ลบ URL ชั่วคราวที่สร้างจาก URL.createObjectURL
-    URL.revokeObjectURL(previewUrls[index]);
-
-    // ลบ URL ของรูปที่ถูกลบออกจาก state
-    const newPreviewUrls = previewUrls.filter((_, i) => i !== index);
-    setPreviewUrls(newPreviewUrls);
-    setSelectedFile(newFiles);
-
-    // ปรับค่า mainImageIndex หากรูปที่ถูกลบคือรูปหลัก
-    if (mainImageIndex === index) {
-      setMainImageIndex(0); // รีเซ็ตรูปหลักเป็นรูปแรก
-    } else if (mainImageIndex > index) {
-      setMainImageIndex((prevIndex) => prevIndex - 1); // ขยับ index ลง
+  const handleSetMain = (index: number, isExiting = false) => {
+    if (isExiting) {
+      setMainImageIndex(index);
+    } else {
+      setMainImageIndex(existingImagesState.length + index);
     }
 
-    // คำนวณค่า mainImageIndex ใหม่เพื่อส่งกลับไปยัง parent component
-    const setMainIndexForParent = () => {
-      if (mainImageIndex === index) {
-        return 0;
-      } else if (mainImageIndex > index) {
-        return mainImageIndex - 1;
-      } else {
-        return mainImageIndex;
-      }
-    };
+    // // กำหนด index ของรูปหลักตามที่เลือก
+    // setMainImageIndex(index);
 
-    // แจ้ง parent ว่ามีการเปลี่ยนแปลงรูปและ index ของรูปหลัก และส่งไปให้ product-form
-    onImageChange(newFiles, setMainIndexForParent());
+    // // แจ้ง parent component ว่ามีการเปลี่ยนรูปหลัก ส่งไปให้ product-form
+    // onImageChange(selectedFile, index);
+  };
+
+  const handleRemoveImage = (index: number, isExiting = false) => {
+    if (isExiting) {
+      const imageToRemove = existingImagesState[index];
+      setDeletedImageIds((prev) => [...prev, imageToRemove.id]);
+      setExistingImagesState(existingImagesState.filter((_, i) => i !== index));
+
+      if (mainImageIndex === index) {
+        if (existingImagesState.length > 0) {
+          setMainImageIndex(0);
+        } else if (selectedFile.length > 0) {
+          setMainImageIndex(0);
+        } else {
+          setMainImageIndex(-1);
+        }
+      } else if (mainImageIndex > index) {
+        setMainImageIndex((prev) => prev - 1);
+      }
+    } else {
+      URL.revokeObjectURL(previewUrls[index]);
+
+      setPreviewUrls(previewUrls.filter((_, i) => i !== index));
+      setSelectedFile(selectedFile.filter((_, i) => i !== index));
+
+      const actualRemovedIndex = existingImagesState.length + index;
+      if (mainImageIndex === actualRemovedIndex) {
+        if (existingImagesState.length > 0) {
+          setMainImageIndex(0);
+        } else if (selectedFile.length > 0) {
+          setMainImageIndex(0);
+        } else {
+          setMainImageIndex(-1);
+        }
+      } else if (mainImageIndex > actualRemovedIndex) {
+        setMainImageIndex((prev) => prev - 1);
+      }
+    }
+  };
+
+  const isMainImage = (index: number, isExisting = false) => {
+    const actualIndex = isExisting ? index : existingImagesState.length + index;
+    return mainImageIndex === actualIndex;
   };
 
   return (
@@ -129,7 +167,7 @@ const ProductImageUpload = ({
       </Label>
 
       {/* Preview images area */}
-      {existingImagesState.length > 0 && previewUrls.length > 0 && (
+      {(existingImagesState.length > 0 || previewUrls.length > 0) && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
           {/* Existing Images */}
           {existingImagesState.map((image, index) => (
@@ -138,7 +176,7 @@ const ProductImageUpload = ({
               className={cn(
                 "relative aspect-square group border rounded-md overflow-hidden",
                 {
-                  "ring-2 ring-primary": mainImageIndex === index,
+                  "ring-2 ring-primary": isMainImage(index, true),
                 }
               )}
             >
@@ -150,7 +188,7 @@ const ProductImageUpload = ({
               />
 
               {/* Main Image Badge */}
-              {mainImageIndex === index && (
+              {isMainImage(index, true) && (
                 <Badge className="absolute top-1 left-1">Main</Badge>
               )}
 
@@ -162,13 +200,15 @@ const ProductImageUpload = ({
                   type="button"
                   variant="secondary"
                   className="size-6 sm:size-8 rounded-full"
-                  onClick={() => handleSetMain(index)}
+                  onClick={() => handleSetMain(index, true)}
                 >
                   <Star
                     size={16}
                     className={cn({
-                      "fill-yellow-400 text-yellow-400":
-                        mainImageIndex === index,
+                      "fill-yellow-400 text-yellow-400": isMainImage(
+                        index,
+                        true
+                      ),
                     })}
                   />
                 </Button>
@@ -178,7 +218,7 @@ const ProductImageUpload = ({
                   type="button"
                   variant="destructive"
                   className="size-6 sm:size-8 rounded-full"
-                  onClick={() => handleRemoveImage(index)}
+                  onClick={() => handleRemoveImage(index, true)}
                 >
                   <Trash2 size={16} />
                 </Button>
@@ -192,7 +232,7 @@ const ProductImageUpload = ({
               className={cn(
                 "relative aspect-square group border rounded-md overflow-hidden",
                 {
-                  "ring-2 ring-primary": mainImageIndex === index,
+                  "ring-2 ring-primary": isMainImage(index, false),
                 }
               )}
             >
@@ -204,7 +244,7 @@ const ProductImageUpload = ({
               />
 
               {/* Main Image Badge */}
-              {mainImageIndex === index && (
+              {isMainImage(index, false) && (
                 <Badge className="absolute top-1 left-1">Main</Badge>
               )}
 
@@ -221,8 +261,10 @@ const ProductImageUpload = ({
                   <Star
                     size={16}
                     className={cn({
-                      "fill-yellow-400 text-yellow-400":
-                        mainImageIndex === index,
+                      "fill-yellow-400 text-yellow-400": isMainImage(
+                        index,
+                        false
+                      ),
                     })}
                   />
                 </Button>

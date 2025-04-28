@@ -72,11 +72,19 @@ const ProductForm = ({ categories, product }: ProductFormProps) => {
   };
 
   const handleSubmit = async (formData: FormData) => {
+    if (product) {
+      formData.append("product-id", product.id);
+    }
+
     if (productImages.length > 0) {
       productImages.forEach((file) => {
         formData.append("images", file); // เพิ่มข้อมูลเข้า formData
       });
       formData.append("main-image-index", mainImageIndex.toString()); // เพิ่มข้อมูลเข้า formData
+    }
+
+    if (deleteImageIds.length > 0) {
+      formData.append("deleted-image-ids", JSON.stringify(deleteImageIds));
     }
 
     return formAction(formData);
