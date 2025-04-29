@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { productSchema } from "@/features/products/schemas/products";
 import { canCreateProduct, canUpdateProduct } from "@/features/products/permissions/products";
 import { deleteFromImageKit } from "@/lib/imageKit";
+import { ProductStatus } from "@prisma/client";
 
 interface CreateProductInput {
   title: string;
@@ -30,6 +31,9 @@ export const getProducts = async () => {
 
   try {
     const products = await db.product.findMany({
+      orderBy: {
+        createdAt: "desc"
+      },
       include: {
         category: {
           select: {
@@ -38,21 +42,20 @@ export const getProducts = async () => {
             status: true,
           },
         },
-        images: {
-          where: {
-            isMain: true,
-          },
-          take: 1,
-        },
+        images: true
       },
     });
 
-    return products.map((product) => ({
-      ...product,
-      lowStock: 5,
-      sku: product.id.substring(0, 8).toUpperCase(),
-      mainImage: product.images.length > 0 ? product.images[0] : null,
-    }));
+    return products.map((product) => {
+      const mainImage = product.images.find((image) => image.isMain)
+
+      return {
+        ...product,
+        lowStock: 5,
+        sku: product.id.substring(0, 8).toUpperCase(),
+        mainImage
+      }
+    });
   } catch (error) {
     console.error("Error getting products data:", error);
     return [];
@@ -317,6 +320,50 @@ export const updateProduct = async (input: CreateProductInput & { id: string, de
     revalidateProductCache(updatedProduct.id)
   } catch (error) {
     console.error("Error updating product:", error)
+    return {
+      message: "Something went wrong. Please try again later",
+    }
+  }
+}
+
+export const changeProductStatus = async (id: string, status: ProductStatus) => {
+  const user = await authCheck();
+
+  if (!user || !canUpdateProduct(user)) {
+    redirect("/");
+  }
+
+  try {
+    const product = await db.product.findUnique({
+      where: {
+        id
+      }
+    })
+
+    if (!product) {
+      return {
+        message: "Product not found"
+      }
+    }
+
+    if (product.status === status) {
+      return {
+        message: `Product is already ${status.toLowerCase()}`
+      }
+    }
+
+    const updatedProduct = await db.product.update({
+      where: {
+        id
+      },
+      data: {
+        status
+      }
+    })
+
+    revalidateProductCache(updatedProduct.id)
+  } catch (error) {
+    console.error("Error changing product status:", error)
     return {
       message: "Something went wrong. Please try again later",
     }

@@ -1,7 +1,7 @@
 "use server"
 
 import { InitialFormState } from "@/types/action"
-import { createProduct, updateProduct } from "@/features/products/db/products"
+import { changeProductStatus, createProduct, updateProduct } from "@/features/products/db/products"
 import { uploadToImageKit } from "@/lib/imageKit"
 
 export const productAction = async (_prevState: InitialFormState, formData: FormData) => {
@@ -50,5 +50,29 @@ export const productAction = async (_prevState: InitialFormState, formData: Form
         success: false, message: result.message, errors: result.error
     } : {
         success: true, message: processedData.id ? "Product updated success" : "Product create success"
+    }
+}
+
+export const deleteProductAction = async (_prevState: InitialFormState, formData: FormData) => {
+    const id = formData.get("product-id") as string
+
+    const result = await changeProductStatus(id, "Inactive")
+
+    return result && result.message ? {
+        success: false, message: result.message
+    } : {
+        success: true, message: "Product deleted success"
+    }
+}
+
+export const restoreProductAction = async (_prevState: InitialFormState, formData: FormData) => {
+    const id = formData.get("product-id") as string
+
+    const result = await changeProductStatus(id, "Active")
+
+    return result && result.message ? {
+        success: false, message: result.message
+    } : {
+        success: true, message: "Product restored success"
     }
 }
