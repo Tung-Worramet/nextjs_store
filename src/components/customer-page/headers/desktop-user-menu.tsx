@@ -19,9 +19,10 @@ import {
 
 interface DesktopUserMenuProps {
   user: UserType;
+  itemCount: number;
 }
 
-const DesktopUserMenu = ({ user }: DesktopUserMenuProps) => {
+const DesktopUserMenu = ({ user, itemCount }: DesktopUserMenuProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -43,7 +44,7 @@ const DesktopUserMenu = ({ user }: DesktopUserMenuProps) => {
         <DropdownMenuItem className="cursor-pointer" asChild>
           <Link href="/cart">
             <span>ตะกร้าของฉัน</span>
-            <Badge className="ml-auto">0</Badge>
+            <Badge className="ml-auto">{itemCount}</Badge>
           </Link>
         </DropdownMenuItem>
 

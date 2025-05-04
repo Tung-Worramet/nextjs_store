@@ -30,14 +30,14 @@ export const getUserCart = async (userId: string | null) => {
 
   try {
     const cart = await db.cart.findFirst({
-      orderBy: {
-        createdAt: "asc",
-      },
       where: {
         orderedById: userId,
       },
       include: {
         products: {
+          orderBy: {
+            createdAt: "asc",
+          },
           include: {
             product: {
               include: {
@@ -54,7 +54,7 @@ export const getUserCart = async (userId: string | null) => {
 
     const cartwithDetails = {
       ...cart,
-      item: cart.products.map((item) => {
+      items: cart.products.map((item) => {
         const mainImage = item.product.images.find((image) => image.isMain);
 
         return {
@@ -64,7 +64,7 @@ export const getUserCart = async (userId: string | null) => {
           product: {
             ...item.product,
             mainImage: mainImage || null,
-            lowstock: 5,
+            lowStock: 5,
             sku: item.product.id.substring(0, 8).toUpperCase(),
           },
         };
