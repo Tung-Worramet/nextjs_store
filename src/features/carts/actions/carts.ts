@@ -2,6 +2,7 @@
 
 import {
   addToCart,
+  clearCart,
   removeFromCart,
   updateCartItem,
 } from "@/features/carts/db/carts";
@@ -50,6 +51,22 @@ export const removeFromCartAction = async (cartItemId: string) => {
     return {
       success: false,
       message: result.message,
+    };
+  }
+};
+
+export const clearCartAction = async () => {
+  const result = await clearCart();
+
+  if (result && result.message) {
+    return {
+      success: false,
+      message: result.message,
+    };
+  } else {
+    return {
+      success: true,
+      message: "ล้างตะกร้าเรียบร้อยแล้ว",
     };
   }
 };

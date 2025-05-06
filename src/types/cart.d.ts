@@ -1,3 +1,4 @@
+import { Cart } from "@prisma/client";
 import { ProductType } from "@/types/product";
 
 export interface CartItem {
