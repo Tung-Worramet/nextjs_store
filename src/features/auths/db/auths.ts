@@ -2,28 +2,37 @@ import { signupSchema, signinSchema } from "@/features/auths/schemas/auths";
 import { revalidateUserCache } from "@/features/users/db/cache";
 import { getUserById } from "@/features/users/db/users";
 import { db } from "@/lib/db";
-import bcrypt from "bcrypt";
-import { SignJWT } from "jose";
+import bcrypt, { genSalt, hash } from "bcrypt";
+import { jwtVerify, SignJWT } from "jose";
 import { cookies, headers } from "next/headers";
+import { Resend } from 'resend';
+import EmailTemplate from "../components/email-template";
+import { JWTExpired } from "jose/errors";
 
-interface signupInput {
+interface SignupInput {
   name?: string;
   email: string;
   password: string;
   confirmPassword: string;
 }
 
-interface signinInput {
+interface SigninInput {
   email: string;
   password: string;
 }
 
-const generateJwtToken = async (userId: string) => {
+interface ResetPasswordInput {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}
+
+const generateJwtToken = async (userId: string, exp: string = "30d") => {
   const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
   return await new SignJWT({ id: userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt() // iat: ms
-    .setExpirationTime("30d")
+    .setExpirationTime(exp)
     .sign(secret);
 };
 
@@ -37,7 +46,7 @@ const setCookieToken = async (token: string) => {
   });
 };
 
-export const signup = async (input: signupInput) => {
+export const signup = async (input: SignupInput) => {
   try {
     const { success, data, error } = signupSchema.safeParse(input);
 
@@ -84,7 +93,7 @@ export const signup = async (input: signupInput) => {
   }
 };
 
-export const signin = async (input: signinInput) => {
+export const signin = async (input: SigninInput) => {
   try {
     const { success, data, error } = signinSchema.safeParse(input);
 
@@ -145,3 +154,79 @@ export const signout = async () => {
     return { message: "เกิดข้อผิดพลาดในการออกจากระบบ" };
   }
 };
+
+export const sendResetPasswordEmail = async (email: string) => {
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  try {
+    const user = await db.user.findUnique({
+      where: {
+        email: email
+      }
+    })
+
+    if (!user) {
+      return {
+        message: "ไม่พบบัญชีที่ใช้อีเมลนี้"
+      }
+    }
+
+    const token = await generateJwtToken(user.id, "15m")
+
+    const resetLink = `${process.env.NEXT_PUBLIC_BASE_URL}/auth/reset-password?token=${token}`
+
+    await resend.emails.send({
+      from: "Next Store <onboarding@resend.dev>",
+      to: email,
+      subject: "รีเซ็ตรหัสผ่าน",
+      react: EmailTemplate({
+        fname: user.name || user.email,
+        resetLink
+      })
+    })
+  } catch (error) {
+    console.error("Error sending reset password email:", error);
+    return {
+      message: "เกิดข้อผิดพลาดในการส่งอีเมลสําหรับรีเซ็ตรหัสผ่าน"
+    }
+  }
+};
+
+export const resetPassword = async (input: ResetPasswordInput) => {
+  try {
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
+    const { payload } = await jwtVerify(input.token, secret);
+
+    if (input.password !== input.confirmPassword) {
+      return {
+        message: "รหัสผ่านไม่ตรงกัน"
+      }
+    }
+
+    const salt = await genSalt(10)
+    const hashedPassword = await hash(input.password, salt)
+
+    const updatedUser = await db.user.update({
+      where: {
+        id: payload.id as string
+      },
+      data: {
+        password: hashedPassword
+      }
+    })
+
+    revalidateUserCache(updatedUser.id)
+  } catch (error) {
+    console.error("Error resetting password:", error);
+
+    if (error instanceof JWTExpired) {
+      return {
+        message: "คำขอของคุณหมดเวลาแล้ว"
+      }
+    }
+
+    return {
+      message: "เกิดข้อผิดพลาดในการกู้คืนรหัสผ่าน"
+    }
+  }
+}

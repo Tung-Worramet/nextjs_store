@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as jose from "jose";
+import { jwtVerify, JWTPayload } from "jose";
 
-interface Payload extends jose.JWTPayload {
+interface Payload extends JWTPayload {
   id: string;
 }
 
 const decryptToken = async (token: string): Promise<Payload | null> => {
+  const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
   try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
-    const { payload } = await jose.jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, secret);
 
     return payload as Payload; // แปลง payload ให้เป็นรูปแบบที่เรากำหนด
   } catch (error) {

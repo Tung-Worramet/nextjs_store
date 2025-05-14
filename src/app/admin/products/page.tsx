@@ -1,8 +1,18 @@
 import ProductList from "@/features/products/components/product-list";
 import { getProducts } from "@/features/products/db/products";
 
-const ProductsAdminPage = async () => {
-  const products = await getProducts();
+interface ProductAdminPageProps {
+  searchParams: Promise<{
+    page?: string;
+  }>;
+}
+
+const ProductAdminPage = async ({ searchParams }: ProductAdminPageProps) => {
+  const page = parseInt((await searchParams).page || "1");
+
+  const limit = 2;
+
+  const { products, totalCount } = await getProducts(page, limit);
 
   return (
     <div className="p-4 sm:p-6 ">
@@ -20,10 +30,15 @@ const ProductsAdminPage = async () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         {/* Product List */}
         <div className="lg:col-span-3">
-          <ProductList products={products} />
+          <ProductList
+            products={products}
+            totalCount={totalCount}
+            page={page}
+            limit={limit}
+          />
         </div>
       </div>
     </div>
   );
 };
-export default ProductsAdminPage;
+export default ProductAdminPage;

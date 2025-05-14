@@ -21,13 +21,22 @@ const AuthFooter = ({ type }: AuthFooterProps) => {
   const { footerText, linkText, linkHref } = authTextMap[type];
 
   return (
-    <div>
+    <div className="text-center">
       <p className="text-accent-foreground">
         {footerText}{" "}
         <Link href={linkHref} className="text-primary hover:underline">
           {linkText}
         </Link>
       </p>
+
+      {type === "signin" && (
+        <Link
+          href="/auth/forgot-password"
+          className="text-sm text-muted-foreground hover:text-primary hover:underline"
+        >
+          ลืมรหัสผ่าน?
+        </Link>
+      )}
     </div>
   );
 };

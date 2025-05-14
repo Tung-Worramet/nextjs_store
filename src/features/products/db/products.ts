@@ -23,42 +23,73 @@ interface CreateProductInput {
   mainImageIndex: number;
 }
 
-export const getProducts = async () => {
+export const getProducts = async (page: number, limit = 2) => {
   "use cache"
 
   cacheLife("hours");
   cacheTag(getProductGlobalTag());
 
+  const skip = (page - 1) * limit;
+
   try {
-    const products = await db.product.findMany({
-      orderBy: {
-        createdAt: "desc"
-      },
-      include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
-            status: true,
-          },
+    const [products, totalCount] = await Promise.all([
+      db.product.findMany({
+        skip: skip,
+        take: limit,
+        orderBy: {
+          createdAt: "desc"
         },
-        images: true
-      },
-    });
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+            },
+          },
+          images: true
+        },
+      }),
+      db.product.count()
+    ])
 
-    return products.map((product) => {
-      const mainImage = product.images.find((image) => image.isMain)
+    // const products = await db.product.findMany({
+    //   orderBy: {
+    //     createdAt: "desc"
+    //   },
+    //   include: {
+    //     category: {
+    //       select: {
+    //         id: true,
+    //         name: true,
+    //         status: true,
+    //       },
+    //     },
+    //     images: true
+    //   },
+    // });
 
-      return {
-        ...product,
-        lowStock: 5,
-        sku: product.id.substring(0, 8).toUpperCase(),
-        mainImage
-      }
-    });
+    // const totalCount = await db.product.count();
+
+    return {
+      products: products.map((product) => {
+        const mainImage = product.images.find((image) => image.isMain)
+
+        return {
+          ...product,
+          lowStock: 5,
+          sku: product.id.substring(0, 8).toUpperCase(),
+          mainImage
+        }
+      }),
+      totalCount
+    }
   } catch (error) {
     console.error("Error getting products data:", error);
-    return [];
+    return {
+      products: [],
+      totalCount: 0
+    }
   }
 };
 
