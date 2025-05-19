@@ -1,4 +1,4 @@
-import { signupSchema, signinSchema } from "@/features/auths/schemas/auths";
+import { signupSchema, signinSchema, resetPasswordSchema } from "@/features/auths/schemas/auths";
 import { revalidateUserCache } from "@/features/users/db/cache";
 import { getUserById } from "@/features/users/db/users";
 import { db } from "@/lib/db";
@@ -194,17 +194,20 @@ export const sendResetPasswordEmail = async (email: string) => {
 
 export const resetPassword = async (input: ResetPasswordInput) => {
   try {
+    const { success, data, error } = resetPasswordSchema.safeParse(input);
+
     const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
     const { payload } = await jwtVerify(input.token, secret);
 
-    if (input.password !== input.confirmPassword) {
+    if (!success) {
       return {
-        message: "รหัสผ่านไม่ตรงกัน"
-      }
+        message: "กรุณากรอกข้อมูลให้ถูกต้อง",
+        error: error.flatten().fieldErrors,
+      };
     }
 
     const salt = await genSalt(10)
-    const hashedPassword = await hash(input.password, salt)
+    const hashedPassword = await hash(data.password, salt)
 
     const updatedUser = await db.user.update({
       where: {
@@ -230,3 +233,42 @@ export const resetPassword = async (input: ResetPasswordInput) => {
     }
   }
 }
+
+// export const resetPassword = async (input: ResetPasswordInput) => {
+//   try {
+//     const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
+//     const { payload } = await jwtVerify(input.token, secret);
+
+//     if (input.password !== input.confirmPassword) {
+//       return {
+//         message: "รหัสผ่านไม่ตรงกัน"
+//       }
+//     }
+
+//     const salt = await genSalt(10)
+//     const hashedPassword = await hash(input.password, salt)
+
+//     const updatedUser = await db.user.update({
+//       where: {
+//         id: payload.id as string
+//       },
+//       data: {
+//         password: hashedPassword
+//       }
+//     })
+
+//     revalidateUserCache(updatedUser.id)
+//   } catch (error) {
+//     console.error("Error resetting password:", error);
+
+//     if (error instanceof JWTExpired) {
+//       return {
+//         message: "คำขอของคุณหมดเวลาแล้ว"
+//       }
+//     }
+
+//     return {
+//       message: "เกิดข้อผิดพลาดในการกู้คืนรหัสผ่าน"
+//     }
+//   }
+// }

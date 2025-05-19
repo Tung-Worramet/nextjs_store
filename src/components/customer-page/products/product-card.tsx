@@ -54,7 +54,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           </Link>
 
           <div className="flex items-baseline justify-between">
-            <div className="flex flex-col">
+            <div className="flex flex-col min-h-[48px]">
               <span className="font-medium text-lg">
                 {formatPrice(product.price)}
               </span>
@@ -89,7 +89,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </div>
       </CardContent>
 
-      <CardFooter className="p-3 gap-2">
+      <CardFooter className="p-3 gap-2 flex items-end">
         <AddToCartButton
           productId={product.id}
           stock={product.stock}

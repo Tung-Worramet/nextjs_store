@@ -49,20 +49,44 @@ export const resetPasswordAction = async (
   _prevState: InitialFormState,
   formData: FormData,
 ) => {
-  const data = {
+  const rawData = {
     token: formData.get("token") as string,
     password: formData.get("password") as string,
     confirmPassword: formData.get("confirm-password") as string,
   };
 
-  const result = await resetPassword(data);
+  const result = await resetPassword(rawData);
+
   return result && result.message
     ? {
       success: false,
       message: result.message,
+      errors: result.error
     }
     : {
       success: true,
       message: "กู้คืนรหัสผ่านสำเร็จ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
     };
 };
+
+// export const resetPasswordAction = async (
+//   _prevState: InitialFormState,
+//   formData: FormData,
+// ) => {
+//   const data = {
+//     token: formData.get("token") as string,
+//     password: formData.get("password") as string,
+//     confirmPassword: formData.get("confirm-password") as string,
+//   };
+
+//   const result = await resetPassword(data);
+//   return result && result.message
+//     ? {
+//       success: false,
+//       message: result.message,
+//     }
+//     : {
+//       success: true,
+//       message: "กู้คืนรหัสผ่านสำเร็จ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
+//     };
+// };

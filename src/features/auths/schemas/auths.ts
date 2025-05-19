@@ -84,3 +84,15 @@ export const signinSchema = z.object({
 
     password: passwordSchema,
 })
+
+// Reset Password Schema
+export const resetPasswordSchema = z.object({
+    password: passwordSchema,
+    confirmPassword: z.string()
+}).refine(
+    (data) => data.password === data.confirmPassword,
+    {
+        message: ERROR_MESSAGE.confirmPassword,
+        path: ['confirmPassword']
+    }
+)

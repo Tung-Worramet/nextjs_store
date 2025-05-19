@@ -59,7 +59,7 @@ export const Hero = () => {
               <div className="absolute size-[320px] lg:size-[400px] rounded-full border-2 border-primary/20" />
             </div>
 
-            <div className="relative z-10 flex items-center">
+            <div className="relative z-10 flex items-center justify-center">
               <div className="relative size-[400px]">
                 <Image
                   alt="Tech Gadgets"

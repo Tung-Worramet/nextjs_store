@@ -6,18 +6,24 @@ import { CardContent, CardFooter } from "@/components/ui/card";
 import Form from "next/form";
 import { resetPasswordAction } from "../actions/auths";
 import { useForm } from "@/hooks/use-form";
+import ErrorMessage from "@/components/shared/error-message";
 
 interface ResetPasswordFormProps {
   token: string;
 }
 
 const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
-  const { formAction, isPending } = useForm(
+  const { errors, formAction, isPending, clearErrors } = useForm(
     resetPasswordAction,
     "/auth/signin"
   );
+
+  // const { formAction, isPending } = useForm(
+  //   resetPasswordAction,
+  //   "/auth/signin"
+  // );
   return (
-    <Form action={formAction}>
+    <Form action={formAction} onChange={clearErrors}>
       <input type="hidden" name="token" value={token} />
       <CardContent className="flex flex-col gap-4">
         <div>
@@ -27,6 +33,7 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
             type="password"
             required
           />
+          {errors.password && <ErrorMessage error={errors.password[0]} />}
         </div>
 
         <div>
@@ -36,6 +43,9 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
             type="password"
             required
           />
+          {errors["confirm-password"] && (
+            <ErrorMessage error={errors["confirm-password"][0]} />
+          )}
         </div>
       </CardContent>
 
