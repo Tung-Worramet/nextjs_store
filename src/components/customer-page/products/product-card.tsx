@@ -17,7 +17,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       ? ((product.basePrice - product.price) / product.basePrice) * 100
       : 0;
   return (
-    <Card className="group overflow-hidden transition-all duration-300 hover:border-primary/50 hover:shadow-md">
+    <Card className="group flex h-full flex-col overflow-hidden transition-all duration-300 hover:border-primary/50 hover:shadow-md">
       <Link href={`/products/${product.id}`}>
         <div className="relative pt-[100%] overflow-hidden bg-muted-foreground">
           {discount > 0 && (
@@ -89,7 +89,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </div>
       </CardContent>
 
-      <CardFooter className="p-3 gap-2">
+      <CardFooter className="mt-auto p-3 gap-2">
         <AddToCartButton
           productId={product.id}
           stock={product.stock}

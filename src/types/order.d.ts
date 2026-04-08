@@ -1,4 +1,6 @@
 import { Order, OrderItem } from "@prisma/client";
+import { ProductType } from "./product";
+import { UserType } from "./user";
 
 export interface OrderType extends Order {
     items: (OrderItem & {
