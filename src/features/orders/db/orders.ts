@@ -262,7 +262,7 @@ export const getAllOrders = async (userId: string, status?: OrderStatus) => {
     const orderDetails = orders.map((order) => {
       return {
         ...order,
-        images: order.items.map((item) => {
+        items: order.items.map((item) => {
           const mainImage = item.product.images.find((image) => image.isMain);
 
           return {
