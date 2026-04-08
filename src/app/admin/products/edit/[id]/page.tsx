@@ -1,6 +1,7 @@
 import { getCategories } from "@/features/categories/db/categories";
 import ProductForm from "@/features/products/components/product-form";
 import { getProductById } from "@/features/products/db/products";
+import { notFound } from "next/navigation";
 
 interface EditProductPageProps {
   params: Promise<{ id: string }>;
@@ -13,6 +14,10 @@ const EditProductPage = async ({ params }: EditProductPageProps) => {
     getProductById(id),
     getCategories(),
   ]);
+
+  if (!product) {
+    notFound();
+  }
 
   //   เปลี่ยนไปใช้แบบข้างบน
   //   const product = await getProductById(id);
