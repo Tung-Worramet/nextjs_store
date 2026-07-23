@@ -1,8 +1,5 @@
 import { db } from "@/lib/db";
-import {
-  unstable_cacheLife as cacheLife,
-  unstable_cacheTag as cacheTag,
-} from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { getCategoryGlobalTag, revalidateCategoryCache } from "./cache";
 import { categorySchema } from "@/features/categories/schemas/categories";
 import { authCheck } from "@/features/auths/db/auths";

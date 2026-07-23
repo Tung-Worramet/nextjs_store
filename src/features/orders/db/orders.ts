@@ -14,10 +14,7 @@ import {
   getOrderIdTag,
   revalidateOrderCache,
 } from "@/features/orders/db/cache";
-import {
-  unstable_cacheLife as cacheLife,
-  unstable_cacheTag as cacheTag,
-} from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import formatDate from "@/lib/formatDate";
 import { uploadToImageKit } from "@/lib/imageKit";
 import { OrderStatus } from "@prisma/client";

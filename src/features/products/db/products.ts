@@ -1,8 +1,5 @@
 import { db } from "@/lib/db";
-import {
-  unstable_cacheLife as cacheLife,
-  unstable_cacheTag as cacheTag,
-} from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { getProductGlobalTag, getProductIdTag, revalidateProductCache } from "@/features/products/db/cache";
 import { authCheck } from "@/features/auths/db/auths";
 import { redirect } from "next/navigation";

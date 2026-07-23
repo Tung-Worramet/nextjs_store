@@ -1,9 +1,6 @@
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import {
-  unstable_cacheLife as cacheLife,
-  unstable_cacheTag as cacheTag,
-} from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { getCartTag, revalidateCartCache } from "@/features/carts/db/cache";
 import { authCheck } from "@/features/auths/db/auths";
 import { canUpdateUserCart } from "../permissions/cart";
